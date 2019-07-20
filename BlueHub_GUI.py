@@ -1,7 +1,11 @@
 # -*- coding: utf-8 -*-
+"""
+	@author: BlueBug
+"""
 import threading
 import tkinter as tk
 from tkinter import messagebox
+import pickle
 from tkinter import ttk
 from requests.exceptions import ConnectionError
 import requests
@@ -73,18 +77,20 @@ class log_in_window:
 class main_window:
 	def __init__(self,master,account,pwd):
 		self.search_list=[]#course_code,course_url,counter,course_year,user_email
-		self.email_list=[]
+		#self.email_list=[]
+		self.test=[1,2,3]
+		self.email_dict={}
 		self.search_box=[]
 		
 		self.account=account
 		self.pwd=pwd
 		self.crawling_enable=False
 		self.delete_enable=False
-		self.file_read()
+		#self.file_read()
 		
 		self.master=master
 		self.master.title('BlueHub GUI')
-		self.master.geometry('430x340')
+		self.master.geometry('520x400')
 		
 		self.frame1 = tk.LabelFrame(self.master, text="NCKU選課資料")
 		self.frame1.grid(row=1, columnspan=7, \
@@ -93,6 +99,8 @@ class main_window:
 		self.frame2 = tk.LabelFrame(self.master,text="查詢結果:")
 		self.frame2.grid(row=2,column=0,columnspan=6, \
                  padx=5, pady=5, ipadx=5, ipady=5,sticky='WNES')
+		
+		self.menubar=tk.Menu(self.master)
 		
 		tk.Label(self.frame2,width=6,text='系所名稱: ').grid(column=1,row=1)
 		tk.Label(self.frame2,width=6,text='課程名稱: ').grid(column=1,row=2)
@@ -139,11 +147,12 @@ class main_window:
 		self.year_lab=tk.Label(self.frame1, width=10, text='課程年級:')
 		self.year_lab.grid(column=1,row=1,sticky='E')       
         
+		self.file_read()
 		self.year_var=tk.StringVar()
-		self.year_var.set(2)
+		self.year_var.set(3)
 		self.yearChosen=ttk.Combobox(self.frame1,width=5,state='readonly',textvariable=self.year_var)
 		self.yearChosen['value']=(0,1,2,3,4)#year of the class
-		self.yearChosen.current(2)#normally year2
+		self.yearChosen.current(3)#normally year2
 		self.yearChosen.grid(column=2,row=1,sticky='W')
 		
 		self.course_code_lab=tk.Label(self.frame1,text='課程代碼:')
@@ -161,7 +170,7 @@ class main_window:
 		
 		self.email_var=tk.StringVar()
 		self.email_var.set('請選擇收件人')
-		self.emailChosen=ttk.Combobox(self.frame1,width=33,state="readonly",value=self.email_list,textvariable=self.email_var)
+		self.emailChosen=ttk.Combobox(self.frame1,width=33,state="readonly",value=self.dict_to_list(self.email_dict),textvariable=self.email_var)
 		self.emailChosen.grid(column=2,columnspan=4,row=2,sticky='W')
 		
 		self.new_email_btn=tk.Button(self.frame1,text='新增',command=self.add_email)
@@ -175,6 +184,11 @@ class main_window:
 		self.crawler_btn=tk.Button(self.frame3,textvariable=self.crawler_var,command=lambda :self.thread_it(self.crawling))
 		self.crawler_btn.grid(column=1,columnspan=2,row=7)
 		
+	def dict_to_list(self,di):
+		li=[]
+		for key in di.keys():
+			li.append(key+'-'+di[key])
+		return li
 	
 	def send_email(self,subject,to_address,body):
 		
@@ -198,12 +212,12 @@ class main_window:
 			
 		except:
 			print("Something wrong when sending mail!")
-			self.crawling_history.insert(tk.INSERT,'Something wrong when sending mail!\n')
+			self.crawling_history.insert(tk.INSERT,'發信失敗\n')
 			self.crawling_history.insert(tk.INSERT,'\n')
 
 	def add_email(self):
 		new_win=tk.Tk()
-		new_win.geometry('300x100')
+		new_win.geometry('400x100')
 		
 		
 		tk.Label(new_win, text='Email: ').grid(column=1,row=1)
@@ -235,10 +249,10 @@ class main_window:
 					
 				else:
 					self.file_write(email,name)
-					self.email_list.append(name+'-'+email)
-					print(self.email_list)
+					#self.email_list.append(name+'-'+email)
+					print(self.email_dict)
 					self.email_var.set('請選擇收件人')
-					ttk.Combobox(self.frame1,width=33,value=self.email_list,textvariable=self.email_var).grid(column=2,columnspan=4,row=2,sticky='W')
+					ttk.Combobox(self.frame1,width=33,value=self.dict_to_list(self.email_dict),textvariable=self.email_var).grid(column=2,columnspan=4,row=2,sticky='W')
 					close_new_win()
 			
 		def close_new_win():
@@ -252,7 +266,7 @@ class main_window:
 		new_win.mainloop()
 		
 	
-        
+	  
 
 	def add_node(self):
 	
@@ -387,36 +401,27 @@ class main_window:
 		return(now_str)
 		
 	def file_write(self,email,name):
+		new_dict={name:email}
+		self.email_dict.update(new_dict)
 		try:
-			file=open('user_email.txt','a+')
-			file.write(name+'\n')
-			file.write(email+'\n')
-			file.close()
+			with open("user.pickle","wb") as file:
+				pickle.dump(self.email_dict,file)
 		except:
 			print('Something wrong when write file')
-			self.crawling_history.insert(tk.INSERT,"寫檔錯誤!\n")
+			self.crawling_history.insert(tk.INSERT,"寫檔錯誤!\n\n")
+
 			
 	def file_read(self):
 		try:
-			file=open('user_email.txt','r')
-			while(True):
-				name=file.readline()
-				if(name==''):
-					break
-				
-				else:
-					email=file.readline()
-					temp1=name.strip()
-					temp2=email.strip()
-					
-					self.email_list.append(temp1+'-'+temp2)
-					
-			file.close()
+			with open("user.pickle","rb") as file:
+				self.email_dict=pickle.load(file)
 		except:
 			print('Something wrong when read file')
-			self.crawling_history.insert(tk.INSERT,"讀檔錯誤!\n")
-			self.crawling_history.insert(tk.INSERT,"\n")
-			pass
+			self.crawling_history.insert(tk.INSERT,"讀檔錯誤!\n\n")
+			with open("user.pickle","wb") as file:
+				pickle.dump({},file)
+			self.crawling_history.insert(tk.INSERT,"已建立空收件人名單\n\n")
+			
 			
 	def crawling(self):
 		index=len(self.search_list)
@@ -434,8 +439,7 @@ class main_window:
 			self.crawling_enable=True
 			self.crawler_var.set('停止爬蟲')
 			self.crawling_history.insert(tk.INSERT,"時間"+self.timer()+'\n')
-			self.crawling_history.insert(tk.INSERT,'開始爬蟲\n')
-			self.crawling_history.insert(tk.INSERT,'\n')
+			self.crawling_history.insert(tk.INSERT,'開始爬蟲\n\n')
 			
 			while(self.crawling_enable and len(self.search_list)!=0):
 				
@@ -466,8 +470,7 @@ class main_window:
 							os._exit(0)
 						else:
 							print("Connection error!")
-							self.crawling_history.insert(tk.INSERT,'網路連線異常\n')
-							self.crawling_history.insert(tk.INSERT,'\n')
+							self.crawling_history.insert(tk.INSERT,'網路連線異常\n\n')
 							time.sleep(2)
 							connection_counter+=1
 							break
@@ -483,8 +486,7 @@ class main_window:
 						#print(data[13].text)#professor of the course
 						#print('餘額:'+data[15].text)#balance of the course
 						self.crawling_history.insert(tk.INSERT,'時間'+now_str+'\n')
-						self.crawling_history.insert(tk.INSERT,node[0]+data[10].text+' 有餘額'+'\n')
-						self.crawling_history.insert(tk.INSERT,'\n')
+						self.crawling_history.insert(tk.INSERT,node[0]+data[10].text+' 有餘額'+'\n\n')
 						self.thread_it(speak,(node[0]+data[13].text+data[10].text+'有餘額'+'\n'))#speak the class
 						
 						
@@ -510,13 +512,20 @@ class main_window:
 
 					i+=1
 					random_sleep()
-					#time.sleep(1)
 				
 			self.crawler_var.set('開始爬蟲')
 			self.crawling_history.insert(tk.INSERT,"時間"+self.timer()+'\n')
-			self.crawling_history.insert(tk.INSERT,'結束爬蟲\n')
-			self.crawling_history.insert(tk.INSERT,'\n')
+			self.crawling_history.insert(tk.INSERT,'結束爬蟲\n\n')
 			
+	def function(self):
+		pass
+	
+	def add_menu(self,name):
+		item=tk.Menu(self.menubar,teatoff=0)
+		self.menubar.add_cascade(label=name,menu=item)
+		item.add_command(label="收件者",command=self.function)
+		
+
 #main code
 user_email=[]
 user_pwd=[]   
