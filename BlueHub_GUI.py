@@ -321,14 +321,13 @@ class main_window:
 	def show_data(self):
 		data_result=[]
 		if(self.search_data(data=data_result)==3):
-		
-			dep=''.join(data_result[0][0].text.split())
+			dep=''.join(data_result[0][0].text.split()[2:])
 			self.r_var1.set(dep)#department
-			self.r_var2.set(data_result[0][10].text)#course name
-			self.r_var3.set(data_result[0][13].text)#name of professor
-			self.r_var4.set(data_result[0][16].text)#course time
-			self.r_var5.set(data_result[0][15].text)#balance of course
-	
+			self.r_var2.set(data_result[0][11].text)#course name
+			self.r_var3.set(data_result[0][14].text)#name of professor
+			self.r_var4.set(data_result[0][17].text)#course time
+			self.r_var5.set(data_result[0][16].text)#balance of course
+			
 	def search_data(self,data=[],result_list=[]):
 		course_code=self.course_code_var.get().upper()
 		
@@ -477,7 +476,7 @@ class main_window:
 						
 						
 						
-					if(data[15].text!=u'額滿'):
+					if(data[16].text!=u'額滿'):
 						
 						now_str=self.timer()
 						#print(now_str)
@@ -486,15 +485,15 @@ class main_window:
 						#print(data[13].text)#professor of the course
 						#print('餘額:'+data[15].text)#balance of the course
 						self.crawling_history.insert(tk.INSERT,'時間'+now_str+'\n')
-						self.crawling_history.insert(tk.INSERT,node[0]+data[10].text+' 有餘額'+'\n\n')
-						self.thread_it(speak,(node[0]+data[13].text+data[10].text+'有餘額'+'\n'))#speak the class
+						self.crawling_history.insert(tk.INSERT,node[0]+data[11].text+' 有餘額'+'\n\n')
+						self.thread_it(speak,(node[0]+data[14].text+data[11].text+'有餘額'+'\n'))#speak the class
 						
 						
 						number=node[5]
 						if(number<2):
 							if(number==0):
 								#first time send an email
-								subject=data[10].text+'('+data[13].text+')'+' 尚有餘額'
+								subject=data[11].text+'('+data[14].text+')'+' 尚有餘額'
 								mail_address=node[4].split('-')[1]
 								body='course code:'+data[1].text+data[2].text+'<br> at time '+now_str
 								self.send_email(subject,mail_address,body)
