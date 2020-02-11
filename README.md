@@ -2,4 +2,4 @@
 * Web crawler to get some information about school course
 
 
-### It is not working after the NCKU course website been updated.If you have some idea about it, or be familiar with js/ajax,please give me some advice. I would appreciate about that.
+### I found a new way to crawl successfully by using selenium(what a magic thing!). Maybe I'll combine this method with the original GUI system(if I have time...).
