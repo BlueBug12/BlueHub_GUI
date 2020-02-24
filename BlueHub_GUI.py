@@ -5,6 +5,7 @@
 import threading
 import tkinter as tk
 from tkinter import messagebox
+import configparser
 import pickle
 from tkinter import ttk
 from requests.exceptions import ConnectionError
@@ -19,8 +20,12 @@ from gtts import gTTS
 from pygame import mixer
 import tempfile
 import os
+import json
 from fake_useragent import UserAgent
 import random
+
+USER=""
+PWD=""
 
 def random_sleep(min=0.1,max=1.0):
 	seed=random.uniform(min,max)
@@ -34,20 +39,38 @@ def speak(sentence,language='zh-tw',loop=1):
 		mixer.music.load('{}.mp3'.format(tf.name))
 		mixer.music.play(loop)
 		time.sleep(1)
+
+def send_email(data):
+	try:
+		smtpserver = smtplib.SMTP('smtp.gmail.com',587)  
+		smtpserver.ehlo()
+		smtpserver.starttls()
+		smtpserver.ehlo()
+		smtpserver.login(data['user'],data['pwd'])  # log in
+
+		msg = MIMEMultipart()
+		msg['Subject'] = data['subject']  #title
+		msg['From'] = data['name']
+		msg['To'] = data['to']
 		
+		msg.attach(MIMEText(data['body'], 'html', 'utf-8'))
+		smtpserver.sendmail(data['name'], data['to'], msg.as_string())
+		smtpserver.quit()  # sign out
+		return 1
+		
+	except:
+		print("Something wrong when sending mail!")
+		return 0	
 		
 class log_in_window:
-	def __init__(self,master,account,pwd):
+	def __init__(self,master):
 		self.master=master
-		self.account=account
-		self.pwd=pwd
-		master.title('Welcome to BlueHub')
-		master.geometry('450x300')
-		
+		self.master.title('Welcome to BlueHub')
+		self.master.geometry('410x280')
 		
 		# welcome image
 		self.canvas = tk.Canvas(master, height=200, width=500)
-		self.image_file = tk.PhotoImage(file='welcome.gif')
+		self.image_file = tk.PhotoImage(file='p.png')#https://openclipart.org/image/400px/svg_to_png/319171/ladybookandglobe-1901.png
 		self.image = self.canvas.create_image(0,0, anchor='nw', image=self.image_file)
 		self.canvas.pack(side='top')
 
@@ -65,28 +88,35 @@ class log_in_window:
 		self.entry_usr_pwd.place(x=160, y=190)
 		self.btn_enter = tk.Button(master, text='Enter', command=self.close_window)
 		self.btn_enter.place(x=170, y=230)
-		
-		master.mainloop()
 
+	def read_user_data(self,cfg_path,section):
+		config = configparser.ConfigParser()
+		config.read(cfg_path)
+		self.var_usr_name.set(config.get(section,'username'))
+		self.var_usr_pwd.set(config.get(section,'password'))
+		
 	def close_window(self):
-		self.account.append(self.var_usr_name.get())
-		self.pwd.append(self.var_usr_pwd.get())
+		global USER
+		global PWD
+		USER=self.var_usr_name.get()
+		PWD=self.var_usr_pwd.get()
 		self.master.destroy()
-   
+
+	def login(self,cfg_path="./config/user.cfg",section="login"):
+		self.master.after(500,lambda:self.read_user_data(cfg_path,section))
+		self.master.mainloop()
             
 class main_window:
-	def __init__(self,master,account,pwd):
+	def __init__(self,master):
 		self.search_list=[]#course_code,course_url,counter,course_year,user_email
 		#self.email_list=[]
-		self.test=[1,2,3]
-		self.email_dict={}
+		self.receiver_dict={}
 		self.search_box=[]
 		
-		self.account=account
-		self.pwd=pwd
+		self.account=USER
+		self.pwd=PWD
 		self.crawling_enable=False
 		self.delete_enable=False
-		#self.file_read()
 		
 		self.master=master
 		self.master.title('BlueHub GUI')
@@ -144,33 +174,34 @@ class main_window:
 		self.crawling_history=tk.Text(self.frame3,height=10,width=30)
 		self.crawling_history.grid(column=1,row=1)
 		
-		self.year_lab=tk.Label(self.frame1, width=10, text='課程年級:')
-		self.year_lab.grid(column=1,row=1,sticky='E')       
-        
+		#self.year_lab=tk.Label(self.frame1, width=10, text='課程年級:')
+		#self.year_lab.grid(column=1,row=1,sticky='E')       
+		print(type(self.receiver_dict))
 		self.file_read()
-		self.year_var=tk.StringVar()
-		self.year_var.set(3)
-		self.yearChosen=ttk.Combobox(self.frame1,width=5,state='readonly',textvariable=self.year_var)
-		self.yearChosen['value']=(0,1,2,3,4)#year of the class
-		self.yearChosen.current(3)#normally year2
-		self.yearChosen.grid(column=2,row=1,sticky='W')
+		print(type(self.receiver_dict))
+		#self.year_var=tk.StringVar()
+		#self.year_var.set(3)
+		#self.yearChosen=ttk.Combobox(self.frame1,width=5,state='readonly',textvariable=self.year_var)
+		#self.yearChosen['value']=(0,1,2,3,4)#year of the class
+		#self.yearChosen.current(3)#normally year2
+		#self.yearChosen.grid(column=2,row=1,sticky='W')
 		
 		self.course_code_lab=tk.Label(self.frame1,text='課程代碼:')
-		self.course_code_lab.grid(column=3,row=1,sticky='E')
+		self.course_code_lab.grid(column=1,row=1,sticky='E')
 		
 		self.course_code_var=tk.StringVar()
 		self.course_code_entry=tk.Entry(self.frame1,width=7,textvariable=self.course_code_var)
-		self.course_code_entry.grid(column=4,row=1,sticky='W')
+		self.course_code_entry.grid(column=2,row=1,sticky='W')
 		
 		self.search_btn=tk.Button(self.frame1,text='查詢',command=lambda :self.thread_it(self.show_data))
-		self.search_btn.grid(column=5,row=1)
+		self.search_btn.grid(column=2,row=1)
 		
 		self.email_lab=tk.Label(self.frame1,width=10,text='收件人Email:')
 		self.email_lab.grid(column=1,row=2,sticky='E')
 		
 		self.email_var=tk.StringVar()
 		self.email_var.set('請選擇收件人')
-		self.emailChosen=ttk.Combobox(self.frame1,width=33,state="readonly",value=self.dict_to_list(self.email_dict),textvariable=self.email_var)
+		self.emailChosen=ttk.Combobox(self.frame1,width=33,state="readonly",value=self.dict_to_list(self.receiver_dict),textvariable=self.email_var)
 		self.emailChosen.grid(column=2,columnspan=4,row=2,sticky='W')
 		
 		self.new_email_btn=tk.Button(self.frame1,text='新增',command=self.add_email)
@@ -190,30 +221,7 @@ class main_window:
 			li.append(key+'-'+di[key])
 		return li
 	
-	def send_email(self,subject,to_address,body):
-		
-		try:
-			smtpserver = smtplib.SMTP('smtp.gmail.com',587)  
-			smtpserver.ehlo()
-			smtpserver.starttls()
-			smtpserver.ehlo()
-			smtpserver.login(self.account[0],self.pwd[0])  # log in
-
-			from_name = 'BlueHub'
-			msg = MIMEMultipart()
-			msg['Subject'] =subject  #title
-			msg['From'] = from_name
-			msg['To'] = to_address
-			mail_body= body #HTML
-			
-			msg.attach(MIMEText(mail_body, 'html', 'utf-8'))
-			smtpserver.sendmail(from_name, to_address, msg.as_string())
-			smtpserver.quit()  # sign out
-			
-		except:
-			print("Something wrong when sending mail!")
-			self.crawling_history.insert(tk.INSERT,'發信失敗\n')
-			self.crawling_history.insert(tk.INSERT,'\n')
+	
 
 	def add_email(self):
 		new_win=tk.Tk()
@@ -233,7 +241,22 @@ class main_window:
 
 		def send_to_test():
 			email=e1.get()
-			self.send_email('test',email,'This is BlueHub.Copy That?')
+			data={
+				"user":USER,
+				"pwd":PWD,
+				"subject":'test',
+				"name":"BlueHub",
+				"to":email,
+				"body":'This is BlueHub.Copy That?'
+			}
+			if(send_email(data)!=1):
+				self.crawling_history.insert(tk.INSERT,'發信失敗\n')
+				self.crawling_history.insert(tk.INSERT,'\n')
+			else:
+				self.crawling_history.insert(tk.INSERT,'發信成功\n')
+				self.crawling_history.insert(tk.INSERT,'\n')
+
+
 
 			
 		def write_and_close():
@@ -250,9 +273,9 @@ class main_window:
 				else:
 					self.file_write(email,name)
 					#self.email_list.append(name+'-'+email)
-					print(self.email_dict)
+					print(self.receiver_dict)
 					self.email_var.set('請選擇收件人')
-					ttk.Combobox(self.frame1,width=33,value=self.dict_to_list(self.email_dict),textvariable=self.email_var).grid(column=2,columnspan=4,row=2,sticky='W')
+					ttk.Combobox(self.frame1,width=33,value=self.dict_to_list(self.receiver_dict),textvariable=self.email_var).grid(column=2,columnspan=4,row=2,sticky='W')
 					close_new_win()
 			
 		def close_new_win():
@@ -400,26 +423,38 @@ class main_window:
 		return(now_str)
 		
 	def file_write(self,email,name):
-		new_dict={name:email}
-		self.email_dict.update(new_dict)
-		try:
-			with open("user.pickle","wb") as file:
-				pickle.dump(self.email_dict,file)
-		except:
-			print('Something wrong when write file')
-			self.crawling_history.insert(tk.INSERT,"寫檔錯誤!\n\n")
+		if not self.receiver_dict:
+			try:
+				os.mkdir("json")
+			except FileExistsError:
+				pass
+			finally:
+				self.receiver_dict = {'我': USER}
+				data = json.dumps(self.receiver_dict)
+				with open("./json/receivers.json", 'w') as f:
+					json.dump(data,f)
+				self.crawling_history.insert(tk.INSERT,"建檔完成!\n\n")
+		else:
+			new_dict={name:email}
+			self.receiver_dict.update(new_dict)
+			try:
+				with open("./json/receivers.json", 'w') as f:
+					json.dump(self.receiver_dict,f)
+			except:
+				print('Something wrong when write file')
+				self.crawling_history.insert(tk.INSERT,"寫檔錯誤!\n\n")
 
 			
-	def file_read(self):
+	def file_read(self,json_path="./json/receivers.json"):
 		try:
-			with open("user.pickle","rb") as file:
-				self.email_dict=pickle.load(file)
+			with open(json_path,'r') as f:
+				self.receiver_dict = json.loads(f)
+
 		except:
 			print('Something wrong when read file')
-			self.crawling_history.insert(tk.INSERT,"讀檔錯誤!\n\n")
-			with open("user.pickle","wb") as file:
-				pickle.dump({},file)
-			self.crawling_history.insert(tk.INSERT,"已建立空收件人名單\n\n")
+			self.crawling_history.insert(tk.INSERT,"讀檔錯誤!\n")
+			self.crawling_history.insert(tk.INSERT,"重建新檔中...\n\n")
+			self.file_write(USER,"我")
 			
 			
 	def crawling(self):
@@ -493,10 +528,21 @@ class main_window:
 						if(number<2):
 							if(number==0):
 								#first time send an email
-								subject=data[11].text+'('+data[14].text+')'+' 尚有餘額'
-								mail_address=node[4].split('-')[1]
-								body='course code:'+data[1].text+data[2].text+'<br> at time '+now_str
-								self.send_email(subject,mail_address,body)
+								data={
+									"user":USER,
+									"pwd":PWD,
+									"subject":data[11].text+'('+data[14].text+')'+' 尚有餘額',
+									"name":"BlueHub",
+									"to":node[4].split('-')[1],
+									"body":'course code:'+data[1].text+data[2].text+'<br> at time '+now_str
+								}
+								if(send_email(data)!=1):
+									self.crawling_history.insert(tk.INSERT,'發信失敗\n')
+									self.crawling_history.insert(tk.INSERT,'\n')
+								else:
+									self.crawling_history.insert(tk.INSERT,'發信成功\n')
+									self.crawling_history.insert(tk.INSERT,'\n')
+
 							
 							self.search_list[i][0][5]+=1
 							
@@ -515,9 +561,9 @@ class main_window:
 			self.crawler_var.set('開始爬蟲')
 			self.crawling_history.insert(tk.INSERT,"時間"+self.timer()+'\n')
 			self.crawling_history.insert(tk.INSERT,'結束爬蟲\n\n')
-			
+
 	def function(self):
-		pass
+		pass	
 	
 	def add_menu(self,name):
 		item=tk.Menu(self.menubar,teatoff=0)
@@ -530,10 +576,11 @@ user_email=[]
 user_pwd=[]   
 
 root1=tk.Tk()
-log_in_window(root1,user_email,user_pwd)
-
+lw=log_in_window(root1)
+lw.login()
+print(USER)
 root2=tk.Tk()
-bluehub=main_window(root2,user_email,user_pwd)
+bluehub=main_window(root2)
 
 root2.mainloop()
 
