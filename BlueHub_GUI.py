@@ -78,7 +78,6 @@ class log_in_window:
 		tk.Label(master, text='Gmail Account: ').place(x=50, y= 150)
 		tk.Label(master, text='Password: ').place(x=50, y= 190)
 		
-		#Blue12345py
 		self.var_usr_name = tk.StringVar()
 		self.entry_usr_name = tk.Entry(master,width=30, textvariable=self.var_usr_name)
 		self.entry_usr_name.place(x=160, y=150)
