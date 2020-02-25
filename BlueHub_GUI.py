@@ -11,7 +11,7 @@ from tkinter import ttk
 from requests.exceptions import ConnectionError
 import requests
 import time
-from bs4 import BeautifulSoup
+from bs4 import BeautifulSoup, Comment
 from datetime import datetime
 import smtplib
 from email.mime.multipart import MIMEMultipart
@@ -23,6 +23,8 @@ import os
 import json
 from fake_useragent import UserAgent
 import random
+from selenium import webdriver
+from selenium.common.exceptions import NoSuchElementException
 
 USER=""
 PWD=""
@@ -60,8 +62,43 @@ def send_email(data):
 		
 	except:
 		print("Something wrong when sending mail!")
-		return 0	
+		return 0
+	
+class crawler:
+	def __init__(self):
+		self.headers = {
+		    'Accept': '*/*',
+		    'Accept-Encoding': 'gzip,deflate,sdch',
+		    'Accept-Language': 'zh-CN,zh;q=0.8,gl;q=0.6,zh-TW;q=0.4',
+		    'Connection': 'keep-alive',
+		    'Content-Type': 'application/x-www-form-urlencoded',
+		    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/79.0.3945.88 Safari/537.36'
+		}
 		
+	def start(self,department,display=0):
+		self.session = requests.Session()
+		self.session.headers.update(self.headers)
+		options = webdriver.ChromeOptions()
+		driverpath = "./driver/chromedriver.exe"
+		if(display==0):
+			options.add_argument('--headless')
+			options.add_argument('--disable-gpu')
+			
+		driver = webdriver.Chrome(executable_path=driverpath,chrome_options=options)
+		driver.get("https://course.ncku.edu.tw/index.php?c=qry_all")
+		try:
+			driver.find_element_by_xpath("//*[contains(text(),'%s')]"%(department)).click()
+		except NoSuchElementException:
+			print("Can't find the element!")
+			driver.close()
+			return 0
+		
+		time.sleep(5)
+		self.html = driver.page_source
+		#time.sleep(2)
+		driver.close()
+		return self.html
+
 class log_in_window:
 	def __init__(self,master):
 		self.master=master
@@ -107,8 +144,7 @@ class log_in_window:
             
 class main_window:
 	def __init__(self,master):
-		self.search_list=[]#course_code,course_url,counter,course_year,user_email
-		#self.email_list=[]
+		self.search_list=[]
 		self.receiver_dict={}
 		self.search_box=[]
 		
@@ -130,30 +166,42 @@ class main_window:
                  padx=5, pady=5, ipadx=5, ipady=5,sticky='WNES')
 		
 		self.menubar=tk.Menu(self.master)
-		
-		tk.Label(self.frame2,width=6,text='系所名稱: ').grid(column=1,row=1)
-		tk.Label(self.frame2,width=6,text='課程名稱: ').grid(column=1,row=2)
-		tk.Label(self.frame2,width=6,text='教師姓名: ').grid(column=1,row=3)
-		tk.Label(self.frame2,width=6,text='上課時間: ').grid(column=1,row=4)
-		tk.Label(self.frame2,width=6,text='課程餘額: ').grid(column=1,row=5)
+		tk.Label(self.frame2,width=6,text=' 代碼: ').grid(column=1,row=1)
+		tk.Label(self.frame2,width=6,text=' 系所: ').grid(column=1,row=2)
+		tk.Label(self.frame2,width=6,text=' 課程: ').grid(column=1,row=3)
+		tk.Label(self.frame2,width=6,text=' 教師: ').grid(column=1,row=4)
+		tk.Label(self.frame2,width=6,text=' 學分: ').grid(column=1,row=5)
+		tk.Label(self.frame2,width=6,text=' 屬性: ').grid(column=1,row=6)
+		tk.Label(self.frame2,width=6,text=' 時間: ').grid(column=1,row=7)
+		tk.Label(self.frame2,width=6,text=' 餘額: ').grid(column=1,row=8)
 		
 		self.r_var1=tk.StringVar()
 		self.r_var2=tk.StringVar()
 		self.r_var3=tk.StringVar()
 		self.r_var4=tk.StringVar()
 		self.r_var5=tk.StringVar()
+		self.r_var6=tk.StringVar()
+		self.r_var7=tk.StringVar()
+		self.r_var8=tk.StringVar()
+
 		
 		self.r_var1.set('               ')
 		self.r_var2.set('               ')
 		self.r_var3.set('               ')
 		self.r_var4.set('               ')
 		self.r_var5.set('               ')
+		self.r_var6.set('               ')
+		self.r_var7.set('               ')
+		self.r_var8.set('               ')
 		 
 		tk.Label(self.frame2,width=10,textvariable=self.r_var1).grid(column=2,row=1)
 		tk.Label(self.frame2,width=10,textvariable=self.r_var2).grid(column=2,row=2)
 		tk.Label(self.frame2,width=10,textvariable=self.r_var3).grid(column=2,row=3)
 		tk.Label(self.frame2,width=10,textvariable=self.r_var4).grid(column=2,row=4)
 		tk.Label(self.frame2,width=10,textvariable=self.r_var5).grid(column=2,row=5)
+		tk.Label(self.frame2,width=10,textvariable=self.r_var6).grid(column=2,row=6)
+		tk.Label(self.frame2,width=10,textvariable=self.r_var7).grid(column=2,row=7)
+		tk.Label(self.frame2,width=10,textvariable=self.r_var8).grid(column=2,row=8)
 		
 		self.search_lab=tk.Label(self.frame1,text='爬蟲列表:')
 		self.search_lab.grid(column=1,row=4)
@@ -175,9 +223,7 @@ class main_window:
 		
 		#self.year_lab=tk.Label(self.frame1, width=10, text='課程年級:')
 		#self.year_lab.grid(column=1,row=1,sticky='E')       
-		print(type(self.receiver_dict))
 		self.file_read()
-		print(type(self.receiver_dict))
 		#self.year_var=tk.StringVar()
 		#self.year_var.set(3)
 		#self.yearChosen=ttk.Combobox(self.frame1,width=5,state='readonly',textvariable=self.year_var)
@@ -220,8 +266,6 @@ class main_window:
 			li.append(key+'-'+di[key])
 		return li
 	
-	
-
 	def add_email(self):
 		new_win=tk.Tk()
 		new_win.geometry('400x100')
@@ -287,9 +331,6 @@ class main_window:
 		tk.Button(little_frame,width=10,text='取消',command=close_new_win).grid(column=1,row=1)
 		new_win.mainloop()
 		
-	
-	  
-
 	def add_node(self):
 	
 		node=[]
@@ -298,31 +339,34 @@ class main_window:
 			return(0)
 			
 		if(self.course_code_var.get()==''):
-			tk.messagebox.showwarning(title='Warning', message='尚未選取收件人!')
+			tk.messagebox.showwarning(title='Warning', message='尚未填入課程代碼!')
 			return(0)
 			
-		else:	
-			result=self.search_data(result_list=node)
-			if(result==3):
+		else:
+			try:
+				info=self.search_data(add=1)	
+			except ConnectionError:
+				#Connection Error
+				tk.messagebox.showerror(title='Error', message='網路連線異常!')
+
+			if(info):
 				#record all data
 				for item in self.search_list:
 					if(item==node):
 						tk.messagebox.showwarning(title='Warning', message='列表已存有資料!')
 						return(0)
 					
-				self.search_list.append(node)
-				self.search_box.append((node[0][4].split('-')[0],node[0][0]))
+				self.search_list.append(info)
+				self.search_box.append(info['name'])
 				self.search_list_box=ttk.Combobox(self.frame1,width=25,value=self.search_box,state='readonly',textvariable=self.search_var)
 				self.search_list_box.grid(column=2,columnspan=2,row=4)
-				return(0)
-			
-			
+				return(1)
+					
 	def delete_guard(self):
 		if(	self.search_var.get()=='(如需刪除再點選)'):
 			return(0)
 			
-		else:
-			
+		else:		
 			if(self.crawling_enable==False):
 				self.delete_node()
 				
@@ -341,68 +385,79 @@ class main_window:
 		self.delete_enable=False
 			
 	def show_data(self):
-		data_result=[]
-		if(self.search_data(data=data_result)==3):
-			dep=''.join(data_result[0][0].text.split()[2:])
-			self.r_var1.set(dep)#department
-			self.r_var2.set(data_result[0][11].text)#course name
-			self.r_var3.set(data_result[0][14].text)#name of professor
-			self.r_var4.set(data_result[0][17].text)#course time
-			self.r_var5.set(data_result[0][16].text)#balance of course
+		try: 
+			info=self.search_data()
+		except ConnectionError:
+			tk.messagebox.showerror(title='Error', message='網路連線異常!')
+
+		if(info):
+			self.r_var1.set(info['code'])
+			self.r_var2.set(info['department'])#course name
+			self.r_var3.set(info['name'])#name of professor
+			self.r_var4.set(info['professor'])#course time
+			self.r_var5.set(info['credit'])#balance of course
+			self.r_var6.set(info['attr'])#name of professor
+			self.r_var7.set(info['time'])#course time
+			self.r_var8.set(info['balance'])#balance of course
 			
-	def search_data(self,data=[],result_list=[]):
+	def search_data(self,add=0):
 		course_code=self.course_code_var.get().upper()
 		
 		for item in self.search_list:
-			if(course_code == item[0]):
+			if(course_code == item['code']):
 				#The course had been searched!
 				tk.messagebox.showinfo(title='Prompt', message='課程已搜尋!')
-				return(0)#state0
-					
+						
 		
-		course_year="course_y"+self.year_var.get()
-		course_url='http://course-query.acad.ncku.edu.tw/qry/qry001.php?dept_no='+course_code[0:2]
-		print(course_url)
-		
-		try:    
-			ua = UserAgent()
-			headers = {'User-Agent':ua.random}
-			get_information=requests.get(course_url,headers=headers)
-			
-		except ConnectionError:
-			#Connection Error
-			tk.messagebox.showerror(title='Error', message='網路連線異常!')
-			return(1)#state1
-
-		get_information.encoding='utf-8'
-		soup=BeautifulSoup(get_information.text,'html.parser')
-		result=soup.find_all("tr",{"class":course_year})
-
-		if(len(result)==0):
+		c=crawler()
+		html=c.start(course_code[0:2])
+		soup=BeautifulSoup(html,'html.parser')
+		data=soup.find_all("tr")
+	
+		if not data:
 			#Wrong course code
 			tk.messagebox.showerror(title='Error', message='課程代碼錯誤!')
-			return(2)#state2
 
 		else:
-
 			#find the course of the code
 			counter=0
-			for item in result:
-				x=item.find_all("td")
-				if(x[2].text==course_code[2:5]):
-					data.append(result[counter].find_all("td"))
-					mail_and_name=self.email_var.get()
-					print(mail_and_name)
-					result_list.append([course_code,course_url,counter,course_year,mail_and_name,0])
-					
-					return(3)#state3 
-					
+			for index in range(1,len(data)):
+				item=data[index].find_all("td")
+				
+				if(item[1].find("div").text!="" and course_code==''.join(item[1].find("div").text.split('-'))):
+					for element in item[7](text=lambda it: isinstance(it, Comment)):
+						element.extract()#remove html comment
+
+					if(add):
+						mail_and_name=self.email_var.get()
+						u=mail_and_name.split('-')[0]
+						m=mail_and_name.split('-')[1]
+					else:
+						u=""
+						m=""
+
+					information={
+						'code':course_code,
+						'index':counter,
+						'user':u,
+						'mail':m,
+						'department':item[0].text,
+						'year_class':item[2].text,
+						'name':item[4].find(class_="course_name").text,
+						'attr':item[5].text,
+						'professor':item[6].text,
+						'balance':''.join(item[7].find_all(text=True,recursive=False)),
+						'time':''.join(item[8].find_all(text=True,recursive=False)),
+						'credit':item[5].text.split('  ')[0],
+						'attr':item[5].text.split('  ')[1],
+						'counter':0
+					}
+
+					return information
 				counter+=1
 
-			if(counter==len(result)):
-				#Can't find the course
-				tk.messagebox.showwarning(title='Warning', message='查無此課程!')
-				return(4)#state4
+			tk.messagebox.showwarning(title='Warning', message='查無此課程!')
+			
         
 	
 	def thread_it(self,func,*args):
@@ -429,9 +484,9 @@ class main_window:
 				pass
 			finally:
 				self.receiver_dict = {'我': USER}
-				data = json.dumps(self.receiver_dict)
 				with open("./json/receivers.json", 'w') as f:
-					json.dump(data,f)
+					json.dump(self.receiver_dict,f)
+
 				self.crawling_history.insert(tk.INSERT,"建檔完成!\n\n")
 		else:
 			new_dict={name:email}
@@ -445,9 +500,10 @@ class main_window:
 
 			
 	def file_read(self,json_path="./json/receivers.json"):
+
 		try:
 			with open(json_path,'r') as f:
-				self.receiver_dict = json.loads(f)
+				self.receiver_dict = json.load(f)
 
 		except:
 			print('Something wrong when read file')
@@ -460,12 +516,11 @@ class main_window:
 		index=len(self.search_list)
 		if(self.crawler_var.get()=='停止爬蟲'):
 			self.stop_crawling()
-			
-			
 			return(0)
+
 		if(index==0):
-				tk.messagebox.showwarning(title='Warning', message='列表中尚無資料!')
-				return(0)
+			tk.messagebox.showwarning(title='Warning', message='列表中尚無資料!')
+			return(0)
 				
 		else:
 			connection_counter=0
@@ -486,19 +541,15 @@ class main_window:
 						self.delete_node()
 						break
 					
-					node=self.search_list[i][0]
+					node=self.search_list[i]
 					
 					try:
-						#random user agent
-						ua = UserAgent()
-						headers = {'User-Agent':ua.random}		
-						get_information=requests.get(node[1],headers=headers)
-						
-						get_information.encoding='utf-8'
-						soup=BeautifulSoup(get_information.text,"lxml")
-						result=soup.find_all("tr",{"class":node[3]})
-						data=result[node[2]].find_all("td")
-					except:
+						c=crawler()
+						html=c.start(node['code'][0:2])
+						#html.encoding='utf-8'
+						soup=BeautifulSoup(html,'html.parser')
+						data=soup.find_all("tr")
+					except ConnectionError:
 						if(connection_counter>3):
 							os._exit(0)
 						else:
@@ -508,34 +559,32 @@ class main_window:
 							connection_counter+=1
 							break
 						
-						
-						
-					if(data[16].text!=u'額滿'):
+					item=data[node['index']].find_all("td")
+					for element in item[7](text=lambda it: isinstance(it, Comment)):
+						element.extract()#remove html comment
+					balance=item[7].find_all(text=True,recursive=False)#avoid reading children text
+					print(balance)
+					if(''.join(balance).split('/')[1]!=u'額滿'):
 						
 						now_str=self.timer()
-						#print(now_str)
-						#print(data[0].text)#department of the course
-						#print(data[10].text)#name of the course
-						#print(data[13].text)#professor of the course
-						#print('餘額:'+data[15].text)#balance of the course
 						self.crawling_history.insert(tk.INSERT,'時間'+now_str+'\n')
-						self.crawling_history.insert(tk.INSERT,node[0]+data[11].text+' 有餘額'+'\n\n')
-						self.thread_it(speak,(node[0]+data[14].text+data[11].text+'有餘額'+'\n'))#speak the class
+						self.crawling_history.insert(tk.INSERT,node['professor']+node['name']+' 有餘額'+'\n\n')
+						self.thread_it(speak,(node['code']+node['professor']+node['name']+'有餘額'+'\n'))#speak the class
 						
 						
-						number=node[5]
+						number=node['counter']
 						if(number<2):
 							if(number==0):
 								#first time send an email
-								data={
+								info={
 									"user":USER,
 									"pwd":PWD,
-									"subject":data[11].text+'('+data[14].text+')'+' 尚有餘額',
+									"subject":node['name']+" "+'('+node['professor']+')'+' 尚有餘額',
 									"name":"BlueHub",
-									"to":node[4].split('-')[1],
-									"body":'course code:'+data[1].text+data[2].text+'<br> at time '+now_str
+									"to":node['mail'],
+									"body":'course code:'+node['code']+node['name']+'<br> at time '+now_str
 								}
-								if(send_email(data)!=1):
+								if not send_email(info):
 									self.crawling_history.insert(tk.INSERT,'發信失敗\n')
 									self.crawling_history.insert(tk.INSERT,'\n')
 								else:
@@ -543,7 +592,7 @@ class main_window:
 									self.crawling_history.insert(tk.INSERT,'\n')
 
 							
-							self.search_list[i][0][5]+=1
+							self.search_list[i]['counter']+=1
 							
 						#delete the node after three times
 						else:
@@ -552,7 +601,7 @@ class main_window:
 							i-=1
 					else:
 						#recounting
-						self.search_list[i][0][5]=0	
+						self.search_list[i]['counter']=0	
 
 					i+=1
 					random_sleep()
@@ -561,18 +610,16 @@ class main_window:
 			self.crawling_history.insert(tk.INSERT,"時間"+self.timer()+'\n')
 			self.crawling_history.insert(tk.INSERT,'結束爬蟲\n\n')
 
-	def function(self):
-		pass	
+	#def function(self):
+#		pass	
 	
-	def add_menu(self,name):
-		item=tk.Menu(self.menubar,teatoff=0)
-		self.menubar.add_cascade(label=name,menu=item)
-		item.add_command(label="收件者",command=self.function)
+#	def add_menu(self,name):
+#		item=tk.Menu(self.menubar,teatoff=0)
+#		self.menubar.add_cascade(label=name,menu=item)
+#		item.add_command(label="收件者",command=self.function)
 		
 
-#main code
-user_email=[]
-user_pwd=[]   
+#main code 
 
 root1=tk.Tk()
 lw=log_in_window(root1)
