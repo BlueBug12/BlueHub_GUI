@@ -107,7 +107,7 @@ class log_in_window:
 
 		# welcome image
 		self.canvas = tk.Canvas(master, height=200, width=500)
-		self.image_file = tk.PhotoImage(file='p.png')#https://openclipart.org/image/400px/svg_to_png/319171/ladybookandglobe-1901.png
+		self.image_file = tk.PhotoImage(file='./image/cover.png')
 		self.image = self.canvas.create_image(0,0, anchor='nw', image=self.image_file)
 		self.canvas.pack(side='top')
 
@@ -239,7 +239,7 @@ class main_window:
 
 		self.email_var=tk.StringVar()
 		self.email_var.set('請選擇收件人')
-		self.emailChosen=ttk.Combobox(self.frame1,width=33,state="readonly",value=self.dict_to_list(self.receiver_dict),textvariable=self.email_var)
+		self.emailChosen=ttk.Combobox(self.frame1,width=31,state="readonly",value=self.dict_to_list(self.receiver_dict),textvariable=self.email_var)
 		self.emailChosen.grid(column=2,columnspan=4,row=2,sticky='W')
 
 		self.new_email_btn=tk.Button(self.frame1,text='新增',command=self.add_email)
