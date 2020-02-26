@@ -25,6 +25,10 @@ Afer the NCKU course web had been upgrated, the original version of BlueHub coul
 * Use line-bot or messenger-bot to take the place of email.
 * Beautify GUI.
 
+## Notification
+* When using the email-sending function, you need open the permission of third-party sites & apps requests.
+* Using different IDE to excute this program may lead to a little different layout of GUI.(Demo picture is using spyder)
+
 ## Declaration
 * This project is **only for learning purpose**.
 * Documents specified above follow the rules of separate authorization regulations.
