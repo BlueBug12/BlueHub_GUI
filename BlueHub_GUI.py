@@ -9,6 +9,7 @@ from log_in.log_in import log_in_window
 def main():
 	root1=tk.Tk()
 	lw=log_in_window(root1)
+	
 	lw.login()
 	user,pwd=lw.get_info()
 

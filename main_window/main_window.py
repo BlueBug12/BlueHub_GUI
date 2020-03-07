@@ -11,7 +11,7 @@ import json
 
 from speaker.speaker import speak
 from mail.mail import send_email
-from crawler import crawler
+from crawler.crawler import crawler
 from sleep.sleep import random_sleep
 
 
@@ -106,7 +106,15 @@ class main_window:
 
 		self.search_btn=tk.Button(self.frame1,text='查詢',command=lambda :self.thread_it(self.show_data))
 		self.search_btn.grid(column=2,row=1)
-
+		
+		self.ip_var=tk.StringVar()
+		self.ip_var.set('')
+		
+		#self.ip_lab=tk.Label(self.frame1,width=7,text="IP:",textvariable=self.ip_var)
+		#self.ip_lab.grid(column=3,row=1)
+		tk.Label(self.frame1,width=4,text='IP: ').grid(column=3,row=1,sticky='E')
+		tk.Label(self.frame1,width=12,textvariable=self.ip_var).grid(column=4,columnspan=3,row=1,sticky='W')
+		
 		self.email_lab=tk.Label(self.frame1,width=10,text='收件人Email:')
 		self.email_lab.grid(column=1,row=2,sticky='E')
 
@@ -209,7 +217,10 @@ class main_window:
 		info={}
 		for i in self.pre_list:
 			if i['code']==self.course_code_var.get().upper():
+				mail_and_name=self.email_var.get()
 				info=i
+				info['user']=mail_and_name.split('-')[0]
+				info['mail']=mail_and_name.split('-')[1]
 				break
 		if not info:
 			try:
@@ -225,7 +236,7 @@ class main_window:
 					return(0)
 
 			self.search_list.append(info)
-			self.search_box.append(info['name'])
+			self.search_box.append(info['user']+'-'+info['name'])
 			self.search_list_box=ttk.Combobox(self.frame1,width=25,value=self.search_box,state='readonly',textvariable=self.search_var)
 			self.search_list_box.grid(column=2,columnspan=2,row=4)
 			self.crawling_history.insert(tk.INSERT,info['name']+' 成功加入列表\n\n')
@@ -284,6 +295,8 @@ class main_window:
 
 		c=crawler()
 		html=c.start(course_code[0:2])
+		self.ip_var.set("               ")
+		self.ip_var.set(c.IP())
 		if not html:
 			return {}
 		soup=BeautifulSoup(html,'html.parser')
@@ -425,6 +438,8 @@ class main_window:
 					try:
 						c=crawler()
 						html=c.start(node['code'][0:2])
+						self.ip_var.set("               ")
+						self.ip_var.set(c.IP())
 						if not html:
 							raise ConnectionError
 						soup=BeautifulSoup(html,'html.parser')
