@@ -1,7 +1,7 @@
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
 from selenium.common.exceptions import NoSuchElementException
-#import requests
+#from fake_useragent import UserAgent
 import time
 import os
 
@@ -19,6 +19,7 @@ class crawler:
 		
 	def start(self,department,display=0):
 		os.system("start /b .\\tor_browser\\Tor\\tor.exe")
+		time.sleep(2)
 #		self.session = requests.Session()
 #		self.session.headers.update(self.headers)
 		opts = Options()
@@ -26,6 +27,7 @@ class crawler:
 		proxy = "socks5://localhost:9050"
 		opts.add_argument('--proxy-server={}'.format(proxy))
 		ua = "Mozilla/5.0 (Windows NT 10.0; WOW64; rv:53.0) Gecko/20100101 Firefox/53.0"
+		#ua = UserAgent()
 		opts.add_argument("user-agent={}".format(ua))
 		driverpath = "./driver/chromedriver.exe"
 		if(display==0):
@@ -48,7 +50,7 @@ class crawler:
 		driver.close()
 		driver = webdriver.Chrome(executable_path=driverpath,chrome_options=opts)
 		driver.get('https://www.whatismyip.com.tw/')
-		time.sleep(2)
+		time.sleep(5)
 		try:
 			self.ip=driver.find_element_by_xpath("/html/body/b/span").text
 		except NoSuchElementException:

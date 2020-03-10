@@ -302,6 +302,7 @@ class main_window:
 		soup=BeautifulSoup(html,'html.parser')
 		data=soup.body.find("div",{"class":"hidden-xs hidden-sm"})
 		data=data.find_all("tr")
+			
 		if not data:
 			tk.messagebox.showerror(title='Error', message='課程代碼錯誤!')
 
@@ -425,7 +426,7 @@ class main_window:
 
 				upper=len(self.search_list)
 				i=0
-
+				flag=0
 				while(i<upper):
 
 					if(self.crawling_enable==False):break
@@ -442,6 +443,7 @@ class main_window:
 						self.ip_var.set(c.IP())
 						if not html:
 							raise ConnectionError
+
 						soup=BeautifulSoup(html,'html.parser')
 						data=soup.body.find("div",{"class":"hidden-xs hidden-sm"})
 						data=data.find_all("tr")
@@ -455,6 +457,14 @@ class main_window:
 							time.sleep(2)
 							connection_counter+=1
 							break
+					except AttributeError:
+						print("AttributeError !")
+						time.sleep(2)
+						flag+=1
+						if(flag>3):
+							break
+						continue
+						
 
 					item=data[node['index']].find_all("td")
 					for element in item[7](text=lambda it: isinstance(it, Comment)):
